@@ -1,0 +1,110 @@
+{
+    "min_points_percent": 0.175,
+    "previous_day_candle": [
+        {
+            "open": 17653.35,
+            "high": 17666.15,
+            "low": 17579.85,
+            "close": 17618.75
+        }
+    ],
+    "current_day_5_min_candles": [
+        {
+            "open": 17638.6,
+            "high": 17658.95,
+            "low": 17613.8,
+            "close": 17653.1
+        },
+        {
+            "open": 17653.1,
+            "high": 17678.75,
+            "low": 17653.1,
+            "close": 17676.6
+        },
+        {
+            "open": 17675.2,
+            "high": 17677.65,
+            "low": 17664.85,
+            "close": 17671.8
+        },
+        {
+            "open": 17673.7,
+            "high": 17682.65,
+            "low": 17668.25,
+            "close": 17675.4
+        },
+        {
+            "open": 17674.8,
+            "high": 17684.45,
+            "low": 17670.75,
+            "close": 17679
+        },
+        {
+            "open": 17678.6,
+            "high": 17682,
+            "low": 17669.6,
+            "close": 17672.5
+        },
+        {
+            "open": 17672.7,
+            "high": 17674.25,
+            "low": 17654.35,
+            "close": 17658.8
+        },
+        {
+            "open": 17657.8,
+            "high": 17659.1,
+            "low": 17647.85,
+            "close": 17656
+        },
+        {
+            "open": 17655.8,
+            "high": 17655.75,
+            "low": 17641.95,
+            "close": 17644.8
+        },
+        {
+            "open": 17645.3,
+            "high": 17649.55,
+            "low": 17635.65,
+            "close": 17646.3
+        },
+        {
+            "open": 17645.9,
+            "high": 17646.2,
+            "low": 17628.75,
+            "close": 17629.1
+        },
+        {
+            "open": 17627.9,
+            "high": 17638.35,
+            "low": 17622.7,
+            "close": 17628.2
+        },
+        {
+            "open": 17628.2,
+            "high": 17642.9,
+            "low": 17628.2,
+            "close": 17641.4
+        },
+        {
+            "open": 17642,
+            "high": 17642,
+            "low": 17630.6,
+            "close": 17635.8
+        }
+    ],
+    "expected_signal": {
+        "signal": "NEUTRAL",
+        "entry_price": 17635.8,
+        "stop_loss_price": 17622.7,
+        "target_price": 0,
+        "target_levels": null,
+        "crossed_levels": [
+            {
+                "Price": 17623,
+                "Type": "TOP PIVOT"
+            }
+        ]
+    }
+}

@@ -1,0 +1,174 @@
+{
+    "//comment": " Date 26April till 10:45 NIFTY index",
+    "min_points_percent": 0.15,
+    "previous_day_candle": [
+        {
+            "Open": 17761.55,
+            "High": 17807.45,
+            "Low": 17716.85,
+            "Close": 17769.25
+        }
+    ],
+    "current_day_5_min_candles": [
+        {
+            "Open": 17767.3,
+            "High": 17776,
+            "Low": 17749.15,
+            "Close": 17752.4
+        },
+        {
+            "Open": 17751.8,
+            "High": 17762.25,
+            "Low": 17745.25,
+            "Close": 17756.8
+        },
+        {
+            "Open": 17756.8,
+            "High": 17758.7,
+            "Low": 17736.95,
+            "Close": 17737.4
+        },
+        {
+            "Open": 17736.9,
+            "High": 17740.75,
+            "Low": 17727.4,
+            "Close": 17732.5
+        },
+        {
+            "Open": 17732.9,
+            "High": 17740.75,
+            "Low": 17727.35,
+            "Close": 17734.7
+        },
+        {
+            "Open": 17737.2,
+            "High": 17743.85,
+            "Low": 17733.25,
+            "Close": 17733.7
+        },
+        {
+            "Open": 17733.3,
+            "High": 17733.3,
+            "Low": 17714.9,
+            "Close": 17715.6
+        },
+        {
+            "Open": 17717,
+            "High": 17721.8,
+            "Low": 17711.2,
+            "Close": 17721.2
+        },
+        {
+            "Open": 17721.1,
+            "High": 17738.45,
+            "Low": 17721.05,
+            "Close": 17738.2
+        },
+        {
+            "Open": 17738.2,
+            "High": 17745.05,
+            "Low": 17734.25,
+            "Close": 17738.1
+        },
+        {
+            "Open": 17738.2,
+            "High": 17757.75,
+            "Low": 17738.15,
+            "Close": 17752.8
+        },
+        {
+            "Open": 17753,
+            "High": 17754.6,
+            "Low": 17747.35,
+            "Close": 17751.6
+        },
+        {
+            "Open": 17752,
+            "High": 17758.7,
+            "Low": 17751.5,
+            "Close": 17757.8
+        },
+        {
+            "Open": 17757.9,
+            "High": 17765.05,
+            "Low": 17752.75,
+            "Close": 17761.3
+        },
+        {
+            "Open": 17760.6,
+            "High": 17767.4,
+            "Low": 17760.15,
+            "Close": 17766.7
+        },
+        {
+            "Open": 17767.1,
+            "High": 17773.95,
+            "Low": 17761.75,
+            "Close": 17761.8
+        },
+        {
+            "Open": 17762.1,
+            "High": 17766.1,
+            "Low": 17757.5,
+            "Close": 17764.9
+        },
+        {
+            "Open": 17764.6,
+            "High": 17767.9,
+            "Low": 17759.95,
+            "Close": 17760.2
+        },
+        {
+            "Open": 17760.4,
+            "High": 17760.4,
+            "Low": 17753.9,
+            "Close": 17756.8
+        }
+    ],
+    "expected_signal": {
+        "signal": "SELL",
+        "entry_price": 17756.8,
+        "stop_loss_price": 17773.95,
+        "target_price": 17721.58,
+        "target_levels": [
+            {
+                "price": 17721.58,
+                "type": "SUPPORT"
+            },
+            {
+                "price": 17673.91,
+                "type": "SUPPORT"
+            },
+            {
+                "price": 17631,
+                "type": "SUPPORT"
+            },
+            {
+                "price": 17711.21,
+                "type": "INITIAL BALANCE LOW"
+            },
+            {
+                "price": 17716.85,
+                "type": "PREVIOUS DAY LOW"
+            },
+            {
+                "price": 17583.32,
+                "type": "SUPPORT"
+            }
+        ],
+        "crossed_levels": [
+            {
+                "price": 17764.52,
+                "type": "CENTRAL PIVOT"
+            },
+            {
+                "price": 17762.15,
+                "type": "BOTTOM PIVOT"
+            },
+            {
+                "price": 17766.88,
+                "type": "TOP PIVOT"
+            }
+        ]
+    }
+}

@@ -1,0 +1,185 @@
+package cpr
+
+import (
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
+	"kite/fire"
+	"log"
+	"revclose"
+)
+
+// func GetData() {
+// 	for {
+// 		fmt.Println("hello mountain")
+// 		time.Sleep(time.Second * 3)
+// 	}
+// }
+
+// func CheckPnl() {
+// 	for {
+// 		fmt.Println("hello goat")
+// 		time.Sleep(time.Second * 1)
+// 	}
+// }
+
+type CPRLevelType string
+
+var MIN_POINTS_MULTIPLIER float64
+
+type SignalValue string
+
+const (
+	Buy     SignalValue = "BUY"
+	Sell    SignalValue = "SELL"
+	Neutral SignalValue = "NEUTRAL"
+)
+
+type CPRCandles interface {
+	GetCandle(int) revclose.RevCandle
+	GetCandlesLength() int
+}
+
+type Signal struct {
+	Signal        SignalValue
+	EntryPrice    float64
+	StopLossPrice float64
+	TargetPrice   float64
+	TargetLevels  []CPRLevel
+	CrossedLevels []CPRLevel
+	Message       string
+}
+
+const (
+	Resistance      CPRLevelType = "RESISTANCE"
+	Support         CPRLevelType = "SUPPORT"
+	CentralPivot    CPRLevelType = "CENTRAL PIVOT"
+	BottomPivot     CPRLevelType = "BOTTOM PIVOT"
+	TopPivot        CPRLevelType = "TOP PIVOT"
+	InitBalanceHigh CPRLevelType = "INITIAL BALANCE HIGH"
+	InitBalanceLow  CPRLevelType = "INITIAL BALANCE LOW"
+	PDH             CPRLevelType = "Previous Day High"
+	PDL             CPRLevelType = "Previous Day Low"
+)
+
+type CPRLevel struct {
+	Price float64
+	Type  CPRLevelType
+}
+
+type TestCandle struct {
+	Open  float64 `json:"open"`
+	High  float64 `json:"high"`
+	Low   float64 `json:"low"`
+	Close float64 `json:"close"`
+}
+type TestSignal struct {
+	Signal        SignalValue `json:"signal"`
+	EntryPrice    float64     `json:"entry_price"`
+	StopLossPrice float64     `json:"stop_loss_price"`
+	TargetPrice   float64     `json:"target_price"`
+	TargetLevels  []CPRLevel  `json:"target_levels"`
+	CrossedLevels []CPRLevel  `json:"crossed_levels"`
+}
+
+type TestCase struct {
+	MinPointsPercent      float64      `json:"min_points_percent"`
+	PreviousDayCandle     []TestCandle `json:"previous_day_candle"`
+	CurrentDay5MinCandles []TestCandle `json:"current_day_5_min_candles"`
+	ExpectedSignal        TestSignal   `json:"expected_signal"`
+}
+
+func AddLevel(price float64, levelType string) CPRLevel {
+	return CPRLevel{
+		Price: price,
+		Type:  CPRLevelType(levelType),
+	}
+}
+
+func main() {
+	log.SetFlags(log.LstdFlags | log.Llongfile)
+	fire.SetGlobalTokenFromDB()
+	currentDate := "2023-03-13"
+	previousDate := "2023-03-10"
+
+	currentDateData, err := fire.GetHistoricalDataFyers("NIFTY 50", "5minute", previousDate+"+09:00:00", currentDate+"+15:30:00", "1")
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+
+	previousDateData, err := fire.GetHistoricalDataFyers("NIFTY 50", "day", previousDate+"+09:15:00", previousDate+"+15:30:00", "1")
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+
+	fmt.Println(currentDateData)
+
+	var currentDayCandles, previousDayCandles []TestCandle
+	for _, fyersCandle := range currentDateData.Data.Candle {
+		if fyersCandle.Timestamp > currentDate+"T14:55:00+0530" {
+			break
+		}
+		if fyersCandle.Timestamp < currentDate+"T09:15+0530" {
+			continue
+		}
+		candle := TestCandle{
+			Open:  fyersCandle.Open,
+			High:  fyersCandle.High,
+			Low:   fyersCandle.Low,
+			Close: fyersCandle.Close,
+		}
+
+		currentDayCandles = append(currentDayCandles, candle)
+	}
+
+	for _, fyersCandle := range previousDateData.Data.Candle {
+		candle := TestCandle{
+			Open:  fyersCandle.Open,
+			High:  fyersCandle.High,
+			Low:   fyersCandle.Low,
+			Close: fyersCandle.Close,
+		}
+		previousDayCandles = append(previousDayCandles, candle)
+	}
+
+	testCase := TestCase{
+		MinPointsPercent:      0.175,
+		PreviousDayCandle:     previousDayCandles,
+		CurrentDay5MinCandles: currentDayCandles,
+		ExpectedSignal: TestSignal{
+			Signal:        Neutral,
+			EntryPrice:    17140.6,
+			StopLossPrice: 17167.7,
+			TargetPrice:   0,
+		},
+	}
+
+	// Add target levels and crossed levels manually
+	testCase.ExpectedSignal.TargetLevels = []CPRLevel{
+		// AddLevel(17663.2, "PREVIOUS DAY HIGH"),
+		// AddLevel(17673.52, "RESISTANCE"),
+		// AddLevel(17722.98, "RESISTANCE"),
+		// AddLevel(17782.77, "RESISTANCE"),
+		// AddLevel(17832.23, "RESISTANCE"),
+	}
+	testCase.ExpectedSignal.CrossedLevels = []CPRLevel{
+		// AddLevel(17577.72, "SUPPORT"),
+		AddLevel(17141.95, "SUPPORT"),
+		// AddLevel(17613.73, "CENTRAL PIVOT"),
+	}
+
+	// Save the test case to a JSON file
+	saveTestCaseToFile("test_case.json", testCase)
+}
+
+func saveTestCaseToFile(filename string, testCase TestCase) {
+	jsonData, err := json.MarshalIndent(testCase, "", "  ")
+	if err != nil {
+		log.Fatalf("Error marshaling test case to JSON: %v", err)
+	}
+
+	err = ioutil.WriteFile(filename, jsonData, 0644)
+	if err != nil {
+		log.Fatalf("Error writing test case to file: %v", err)
+	}
+}

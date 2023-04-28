@@ -1,0 +1,479 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>CPR: Go Coverage Report</title>
+		<style>
+			body {
+				background: black;
+				color: rgb(80, 80, 80);
+			}
+			body, pre, #legend span {
+				font-family: Menlo, monospace;
+				font-weight: bold;
+			}
+			#topbar {
+				background: black;
+				position: fixed;
+				top: 0; left: 0; right: 0;
+				height: 42px;
+				border-bottom: 1px solid rgb(80, 80, 80);
+			}
+			#content {
+				margin-top: 50px;
+			}
+			#nav, #legend {
+				float: left;
+				margin-left: 10px;
+			}
+			#legend {
+				margin-top: 12px;
+			}
+			#nav {
+				margin-top: 10px;
+			}
+			#legend span {
+				margin: 0 5px;
+			}
+			.cov0 { color: rgb(192, 0, 0) }
+.cov1 { color: rgb(128, 128, 128) }
+.cov2 { color: rgb(116, 140, 131) }
+.cov3 { color: rgb(104, 152, 134) }
+.cov4 { color: rgb(92, 164, 137) }
+.cov5 { color: rgb(80, 176, 140) }
+.cov6 { color: rgb(68, 188, 143) }
+.cov7 { color: rgb(56, 200, 146) }
+.cov8 { color: rgb(44, 212, 149) }
+.cov9 { color: rgb(32, 224, 152) }
+.cov10 { color: rgb(20, 236, 155) }
+
+		</style>
+	</head>
+	<body>
+		<div id="topbar">
+			<div id="nav">
+				<select id="files">
+				
+				<option value="file0">github.com/dragonzurfer/strategy/CPR/cpr.go (100.0%)</option>
+				
+				<option value="file1">github.com/dragonzurfer/strategy/CPR/cpr_levels.go (100.0%)</option>
+				
+				<option value="file2">github.com/dragonzurfer/strategy/CPR/extended_cpr_candles.go (62.5%)</option>
+				
+				<option value="file3">github.com/dragonzurfer/strategy/CPR/levels.go (100.0%)</option>
+				
+				<option value="file4">github.com/dragonzurfer/strategy/CPR/signal.go (94.6%)</option>
+				
+				</select>
+			</div>
+			<div id="legend">
+				<span>not tracked</span>
+			
+				<span class="cov0">not covered</span>
+				<span class="cov8">covered</span>
+			
+			</div>
+		</div>
+		<div id="content">
+		
+		<pre class="file" id="file0" style="display: none">package cpr
+
+import (
+        "github.com/dragonzurfer/revclose"
+)
+
+var MIN_POINTS_MULTIPLIER float64
+
+type SignalValue string
+
+const (
+        Buy     SignalValue = "BUY"
+        Sell    SignalValue = "SELL"
+        Neutral SignalValue = "NEUTRAL"
+)
+
+type CPRCandles interface {
+        GetCandle(int) revclose.RevCandle
+        GetCandlesLength() int
+}
+
+type Signal struct {
+        Signal        SignalValue
+        EntryPrice    float64
+        StopLossPrice float64
+        TargetPrice   float64
+        TargetLevels  []CPRLevel
+        CrossedLevels []CPRLevel
+        Message       string
+}
+
+func GetCPRSignal(minPointsPercent float64, previousDayCandle, currendDay5MinCandles CPRCandles) Signal <span class="cov8" title="1">{
+        MIN_POINTS_MULTIPLIER = minPointsPercent / 100
+        var signal Signal
+        currenDayCandlesLength := currendDay5MinCandles.GetCandlesLength()
+        closingPrice := currendDay5MinCandles.GetCandle(currenDayCandlesLength - 1).GetClose()
+        levels := GetCPRLevels(&amp;previousDayCandle, &amp;currendDay5MinCandles)
+        revCloseLevelInterface := ConverToRevCloseLevelsInterface(levels)
+        revCloseSignal := revclose.GetSignal(currendDay5MinCandles, revCloseLevelInterface, closingPrice)
+        signal = convertToCPRSignal(&amp;revCloseSignal, &amp;levels)
+
+        return signal
+}</span>
+</pre>
+		
+		<pre class="file" id="file1" style="display: none">package cpr
+
+import (
+        "math"
+
+        "github.com/dragonzurfer/revclose"
+)
+
+func ConverToRevCloseLevelsInterface(cprLevels []CPRLevel) []revclose.LevelInterface <span class="cov8" title="1">{
+        levelInterfaces := make([]revclose.LevelInterface, len(cprLevels))
+        for i, level := range cprLevels </span><span class="cov8" title="1">{
+                new_level := level
+                levelInterfaces[i] = &amp;new_level
+        }</span>
+        <span class="cov8" title="1">return levelInterfaces</span>
+}
+
+func GetCPRLevels(previousDayCandle, currentDay5MinCandles *CPRCandles) []CPRLevel <span class="cov8" title="1">{
+        var cprLevels []CPRLevel
+
+        // Calculate Pivot Points
+        extendedPreviousDayCandle := &amp;ExtendedCPRCandles{*previousDayCandle}
+        extendedCurrentDay5MinCandles := &amp;ExtendedCPRCandles{*currentDay5MinCandles}
+
+        pivotPoints := calculatePivotPoints(extendedPreviousDayCandle)
+        cprLevels = append(cprLevels, pivotPoints...)
+
+        // Calculate init balance high low
+        initBalanceLevels := getInitBalanceLevels(extendedCurrentDay5MinCandles)
+        cprLevels = append(cprLevels, initBalanceLevels...)
+
+        // Calculate Previous day high low
+        previousDayHighLowLevels := getPreviousDayHighLowLevels(extendedPreviousDayCandle)
+        cprLevels = append(cprLevels, previousDayHighLowLevels...)
+        return cprLevels
+}</span>
+
+func getPreviousDayHighLowLevels(candles *ExtendedCPRCandles) []CPRLevel <span class="cov8" title="1">{
+        var previousDayHighLowLevels []CPRLevel
+
+        previousDayHigh, previousDayLow, _ := candles.GetHighLowClose()
+
+        // Create CPRLevel for Previous Day High and append it to previousDayHighLowLevels
+        prevDayHighLevel := CPRLevel{
+                Price: previousDayHigh,
+                Type:  PDH,
+        }
+        previousDayHighLowLevels = append(previousDayHighLowLevels, prevDayHighLevel)
+
+        // Create CPRLevel for Previous Day Low and append it to previousDayHighLowLevels
+        prevDayLowLevel := CPRLevel{
+                Price: previousDayLow,
+                Type:  PDL,
+        }
+        previousDayHighLowLevels = append(previousDayHighLowLevels, prevDayLowLevel)
+
+        return previousDayHighLowLevels
+}</span>
+
+func getInitBalanceLevels(candles *ExtendedCPRCandles) []CPRLevel <span class="cov8" title="1">{
+        var initBalanceLevels []CPRLevel
+
+        // Check if the first hour exists
+        if candles.GetCandlesLength() &gt;= 12 </span><span class="cov8" title="1">{
+                initialBalanceHigh, initialBalanceLow := candles.GetCandle(0).GetHigh(), candles.GetCandle(0).GetLow()
+
+                for i := 1; i &lt; 12; i++ </span><span class="cov8" title="1">{
+                        candle := candles.GetCandle(i)
+                        initialBalanceHigh = math.Max(initialBalanceHigh, candle.GetHigh())
+                        initialBalanceLow = math.Min(initialBalanceLow, candle.GetLow())
+                }</span>
+
+                // Create CPRLevel for Initial Balance High and append it to initBalanceLevels
+                <span class="cov8" title="1">initBalanceHighLevel := CPRLevel{
+                        Price: initialBalanceHigh,
+                        Type:  InitBalanceHigh,
+                }
+                initBalanceLevels = append(initBalanceLevels, initBalanceHighLevel)
+
+                // Create CPRLevel for Initial Balance Low and append it to initBalanceLevels
+                initBalanceLowLevel := CPRLevel{
+                        Price: initialBalanceLow,
+                        Type:  InitBalanceLow,
+                }
+                initBalanceLevels = append(initBalanceLevels, initBalanceLowLevel)</span>
+        }
+        <span class="cov8" title="1">return initBalanceLevels</span>
+}
+
+func calculatePivotPoints(candles *ExtendedCPRCandles) []CPRLevel <span class="cov8" title="1">{
+        high, low, close := candles.GetHighLowClose()
+        pivot := (high + low + close) / 3
+
+        // Calculate bottom and top pivot
+        bottomPivot := (high + low) / 2
+        topPivot := (2 * pivot) - bottomPivot
+
+        // Resistance levels
+        r1 := 2*pivot - low
+        r2 := pivot + high - low
+        r3 := r1 + high - low
+        r4 := r3 + r2 - r1
+
+        // Support levels
+        s1 := 2*pivot - high
+        s2 := pivot - high + low
+        s3 := s1 - high + low
+        s4 := s3 + s2 - s1
+
+        levels := []CPRLevel{
+                {Price: pivot, Type: CentralPivot},
+                {Price: bottomPivot, Type: BottomPivot},
+                {Price: topPivot, Type: TopPivot},
+                {Price: r1, Type: Resistance},
+                {Price: r2, Type: Resistance},
+                {Price: r3, Type: Resistance},
+                {Price: r4, Type: Resistance},
+                {Price: s1, Type: Support},
+                {Price: s2, Type: Support},
+                {Price: s3, Type: Support},
+                {Price: s4, Type: Support},
+        }
+
+        if levels[1].Price &gt; levels[2].Price </span><span class="cov8" title="1">{
+                temp := levels[1].Price
+                levels[1].Price = levels[2].Price
+                levels[2].Price = temp
+        }</span>
+        <span class="cov8" title="1">return levels</span>
+}
+</pre>
+		
+		<pre class="file" id="file2" style="display: none">package cpr
+
+import "math"
+
+type ExtendedCPRCandles struct {
+        CPRCandles
+}
+
+func (ec *ExtendedCPRCandles) GetHighLowClose() (high, low, close float64) <span class="cov8" title="1">{
+        length := ec.GetCandlesLength()
+        high, low = ec.GetCandle(0).GetHigh(), ec.GetCandle(0).GetLow()
+
+        for i := 1; i &lt; length; i++ </span><span class="cov0" title="0">{
+                candle := ec.GetCandle(i)
+                high = math.Max(high, candle.GetHigh())
+                low = math.Min(low, candle.GetLow())
+        }</span>
+
+        <span class="cov8" title="1">close = ec.GetCandle(length - 1).GetClose()
+
+        return high, low, close</span>
+}
+</pre>
+		
+		<pre class="file" id="file3" style="display: none">package cpr
+
+type CPRLevelType string
+
+const (
+        Resistance      CPRLevelType = "RESISTANCE"
+        Support         CPRLevelType = "SUPPORT"
+        CentralPivot    CPRLevelType = "CENTRAL PIVOT"
+        BottomPivot     CPRLevelType = "BOTTOM PIVOT"
+        TopPivot        CPRLevelType = "TOP PIVOT"
+        InitBalanceHigh CPRLevelType = "INITIAL BALANCE HIGH"
+        InitBalanceLow  CPRLevelType = "INITIAL BALANCE LOW"
+        PDH             CPRLevelType = "PREVIOUS DAY HIGH"
+        PDL             CPRLevelType = "PREVIOUS DAY LOW"
+)
+
+type CPRLevel struct {
+        Price float64
+        Type  CPRLevelType
+}
+
+func (c *CPRLevel) HasCrossed(reversalPrice float64, closingPrice float64) bool <span class="cov8" title="1">{
+
+        if reversalPrice &gt; c.Price &amp;&amp; c.Price &gt; closingPrice </span><span class="cov8" title="1">{
+                return true
+        }</span>
+
+        <span class="cov8" title="1">if reversalPrice &lt; c.Price &amp;&amp; c.Price &lt; closingPrice </span><span class="cov8" title="1">{
+                return true
+        }</span>
+        <span class="cov8" title="1">return false</span>
+}
+</pre>
+		
+		<pre class="file" id="file4" style="display: none">package cpr
+
+import (
+        "fmt"
+        "math"
+        "sort"
+        "strings"
+
+        "github.com/dragonzurfer/revclose"
+)
+
+func processCrossedLevels(LevelsWithinRange []revclose.LevelInterface) []CPRLevel <span class="cov8" title="1">{
+        crossedLevels := []CPRLevel{}
+        for _, levelInterface := range LevelsWithinRange </span><span class="cov8" title="1">{
+
+                level, _ := levelInterface.(*CPRLevel)
+                crossedLevels = append(crossedLevels, *level)
+
+        }</span>
+        <span class="cov8" title="1">return crossedLevels</span>
+}
+
+func convertToCPRSignal(revSignal *revclose.Signal, levels *[]CPRLevel) Signal <span class="cov8" title="1">{
+        cprSignal := initializeCPRSignal(revSignal)
+        sortLevelsByPrice(levels)
+
+        startIndex := findStartIndex(revSignal.Value, revSignal.Close, levels)
+        // fmt.Println(startIndex, levels)
+        if startIndex != math.MinInt32 </span><span class="cov8" title="1">{
+                setTargetLevelsAndPrice(revSignal.Value, startIndex, *levels, &amp;cprSignal)
+                setMessage(&amp;cprSignal, levels)
+        }</span>
+
+        <span class="cov8" title="1">if len(cprSignal.TargetLevels) &lt; 1 </span><span class="cov8" title="1">{
+                setNeutralSignal(&amp;cprSignal)
+                cprSignal.Message = "No more levels"
+        }</span>
+
+        <span class="cov8" title="1">if !isRiskRewardRatioOneToOne(cprSignal) </span><span class="cov8" title="1">{
+                setNeutralSignal(&amp;cprSignal)
+                cprSignal.Message = "No good RR"
+        }</span>
+
+        <span class="cov8" title="1">if !minTargetAbailable(cprSignal.TargetPrice, cprSignal.EntryPrice) </span><span class="cov8" title="1">{
+                setNeutralSignal(&amp;cprSignal)
+                cprSignal.Message = "Not enough points"
+        }</span>
+        // set cprSignal.Message to Prices it crossed comma seperated appended by the level Description (123,1231,12312) (PREVIOUS DAY HIGH,RESISTANCE, CENTRAL PIVOT)
+        <span class="cov8" title="1">return cprSignal</span>
+}
+
+func setMessage(cprSignal *Signal, levels *[]CPRLevel) <span class="cov8" title="1">{
+        var crossedLevelsStr []string
+
+        for _, level := range cprSignal.CrossedLevels </span><span class="cov8" title="1">{
+                crossedLevelsStr = append(crossedLevelsStr, fmt.Sprintf("%.2f (%s)", level.Price, level.Type))
+        }</span>
+
+        <span class="cov8" title="1">cprSignal.Message = strings.Join(crossedLevelsStr, ", ")</span>
+}
+
+func initializeCPRSignal(revSignal *revclose.Signal) Signal <span class="cov8" title="1">{
+        return Signal{
+                Signal:        SignalValue(revSignal.Value),
+                EntryPrice:    revSignal.Close,
+                StopLossPrice: revSignal.Reversal,
+                TargetPrice:   0,
+                TargetLevels:  []CPRLevel{},
+                CrossedLevels: processCrossedLevels(revSignal.LevelsWithinRange),
+        }
+}</span>
+
+func sortLevelsByPrice(levels *[]CPRLevel) <span class="cov8" title="1">{
+        sort.Slice(*levels, func(i, j int) bool </span><span class="cov8" title="1">{
+                return (*levels)[i].Price &lt; (*levels)[j].Price
+        }</span>)
+}
+
+func findStartIndex(value revclose.SignalValue, closePrice float64, levels *[]CPRLevel) int <span class="cov8" title="1">{
+
+        levelsLen := len(*levels)
+        if value == revclose.Sell </span><span class="cov8" title="1">{
+
+                for i, level := range *levels </span><span class="cov8" title="1">{
+                        if closePrice &lt; level.Price </span><span class="cov8" title="1">{
+                                return i
+                        }</span>
+                }
+                <span class="cov0" title="0">return levelsLen</span>
+        }
+        <span class="cov8" title="1">if value == revclose.Buy </span><span class="cov8" title="1">{
+                for i := levelsLen - 1; i &gt;= 0; i-- </span><span class="cov8" title="1">{
+                        if closePrice &gt; (*levels)[i].Price &amp;&amp; value == revclose.Buy </span><span class="cov8" title="1">{
+                                return i
+                        }</span>
+                }
+                <span class="cov0" title="0">return -1</span>
+        }
+        <span class="cov0" title="0">return math.MinInt32</span>
+}
+
+func setTargetLevelsAndPrice(value revclose.SignalValue, startIndex int, levels []CPRLevel, cprSignal *Signal) <span class="cov8" title="1">{
+        if value == revclose.Buy </span><span class="cov8" title="1">{
+                cprSignal.TargetLevels = levels[startIndex+1:]
+        }</span> else<span class="cov8" title="1"> if value == revclose.Sell </span><span class="cov8" title="1">{
+                cprSignal.TargetLevels = levels[:startIndex]
+        }</span>
+        <span class="cov8" title="1">length := len(cprSignal.TargetLevels)
+        if length &gt; 0 &amp;&amp; value == revclose.Sell </span><span class="cov8" title="1">{
+                cprSignal.TargetPrice = cprSignal.TargetLevels[length-1].Price
+        }</span>
+        <span class="cov8" title="1">if length &gt; 0 &amp;&amp; value == revclose.Buy </span><span class="cov8" title="1">{
+                cprSignal.TargetPrice = cprSignal.TargetLevels[0].Price
+        }</span>
+}
+
+func isRiskRewardRatioOneToOne(cprSignal Signal) bool <span class="cov8" title="1">{
+        return math.Abs(cprSignal.StopLossPrice-cprSignal.EntryPrice) &lt;= math.Abs(cprSignal.TargetPrice-cprSignal.EntryPrice)
+}</span>
+
+func minTargetAbailable(targetPrice, entryPrice float64) bool <span class="cov8" title="1">{
+        if targetPrice &lt; entryPrice </span><span class="cov8" title="1">{
+                return targetPrice &lt;= entryPrice*(1-MIN_POINTS_MULTIPLIER)
+        }</span> else<span class="cov8" title="1"> {
+                return targetPrice &gt;= entryPrice*(1+MIN_POINTS_MULTIPLIER)
+        }</span>
+}
+
+func setNeutralSignal(cprSignal *Signal) <span class="cov8" title="1">{
+        cprSignal.Signal = Neutral
+        cprSignal.TargetPrice = 0
+        cprSignal.TargetLevels = []CPRLevel{}
+}</span>
+</pre>
+		
+		</div>
+	</body>
+	<script>
+	(function() {
+		var files = document.getElementById('files');
+		var visible;
+		files.addEventListener('change', onChange, false);
+		function select(part) {
+			if (visible)
+				visible.style.display = 'none';
+			visible = document.getElementById(part);
+			if (!visible)
+				return;
+			files.value = part;
+			visible.style.display = 'block';
+			location.hash = part;
+		}
+		function onChange() {
+			select(files.value);
+			window.scrollTo(0, 0);
+		}
+		if (location.hash != "") {
+			select(location.hash.substr(1));
+		}
+		if (!visible) {
+			select("file0");
+		}
+	})();
+	</script>
+</html>
