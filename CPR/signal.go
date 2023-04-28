@@ -22,6 +22,7 @@ func processCrossedLevels(LevelsWithinRange []revclose.LevelInterface) []CPRLeve
 
 func convertToCPRSignal(revSignal *revclose.Signal, levels *[]CPRLevel) Signal {
 	cprSignal := initializeCPRSignal(revSignal)
+
 	sortLevelsByPrice(levels)
 
 	startIndex := findStartIndex(revSignal.Value, revSignal.Close, levels)
@@ -31,19 +32,28 @@ func convertToCPRSignal(revSignal *revclose.Signal, levels *[]CPRLevel) Signal {
 		setMessage(&cprSignal, levels)
 	}
 
+	if len(revSignal.LevelsWithinRange) == 0 {
+		setNeutralSignal(&cprSignal)
+		cprSignal.Message = "No level has crossed"
+		return cprSignal
+	}
+
 	if len(cprSignal.TargetLevels) < 1 {
 		setNeutralSignal(&cprSignal)
 		cprSignal.Message = "No more levels"
+		return cprSignal
 	}
 
 	if !isRiskRewardRatioOneToOne(cprSignal) {
 		setNeutralSignal(&cprSignal)
 		cprSignal.Message = "No good RR"
+		return cprSignal
 	}
 
 	if !minTargetAbailable(cprSignal.TargetPrice, cprSignal.EntryPrice) {
 		setNeutralSignal(&cprSignal)
 		cprSignal.Message = "Not enough points"
+		return cprSignal
 	}
 	// set cprSignal.Message to Prices it crossed comma seperated appended by the level Description (123,1231,12312) (PREVIOUS DAY HIGH,RESISTANCE, CENTRAL PIVOT)
 	return cprSignal
