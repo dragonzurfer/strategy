@@ -21,6 +21,12 @@ func processCrossedLevels(LevelsWithinRange []revclose.LevelInterface) []CPRLeve
 }
 
 func convertToCPRSignal(revSignal *revclose.Signal, levels *[]CPRLevel) Signal {
+	if !reversalTypeMatch(revSignal) {
+		return Signal{
+			Signal:  Neutral,
+			Message: "Reversal type not matching trade",
+		}
+	}
 	cprSignal := initializeCPRSignal(revSignal)
 
 	sortLevelsByPrice(levels)
@@ -153,4 +159,13 @@ func setNeutralSignal(cprSignal *Signal) {
 	cprSignal.Signal = Neutral
 	cprSignal.TargetPrice = 0
 	cprSignal.TargetLevels = []CPRLevel{}
+}
+
+// reversal is from lower price to close then type should be bearish. There are cases where this can not match (low probability)
+func reversalTypeMatch(signal *revclose.Signal) bool {
+	if signal.Reversal < signal.Close {
+		return signal.ReversalType == revclose.Bearish
+	} else {
+		return signal.ReversalType == revclose.Bullish
+	}
 }
