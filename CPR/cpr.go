@@ -5,6 +5,7 @@ import (
 )
 
 var MIN_POINTS_MULTIPLIER float64
+var MIN_POINTS_MULTIPLIER_SL float64 = 0.0005
 
 type SignalValue string
 

@@ -27,6 +27,7 @@ type TestSignal struct {
 	TargetPrice   float64         `json:"target_price"`
 	TargetLevels  []cpr.CPRLevel  `json:"target_levels"`
 	CrossedLevels []cpr.CPRLevel  `json:"crossed_levels"`
+	Message       string          `json:"message"`
 }
 
 type TestCase struct {
@@ -44,6 +45,7 @@ func (ts *TestSignal) ToSignal() cpr.Signal {
 		TargetPrice:   ts.TargetPrice,
 		TargetLevels:  ts.TargetLevels,
 		CrossedLevels: ts.CrossedLevels,
+		Message:       ts.Message,
 	}
 }
 
@@ -125,6 +127,15 @@ func signalsAlmostEqual(tc string, expected, actual cpr.Signal) error {
 		}
 	}
 
+	if expected.Message != actual.Message {
+		switch tc {
+		case "testcase8.json":
+			if expected.Message != actual.Message {
+				return fmt.Errorf("expected:%v \nactual:%v\n", expected.Message, actual.Message)
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -137,6 +148,7 @@ func TestGetCPRSignal(t *testing.T) {
 		"testcase5.json",
 		"testcase6.json",
 		"testcase7.json",
+		"testcase8.json",
 	}
 
 	for _, tc := range testCases {

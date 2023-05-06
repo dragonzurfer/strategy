@@ -50,12 +50,17 @@ func convertToCPRSignal(revSignal *revclose.Signal, levels *[]CPRLevel) Signal {
 		return cprSignal
 	}
 
-	if !minTargetAbailable(cprSignal.TargetPrice, cprSignal.EntryPrice) {
+	if !minTargetAvailable(cprSignal.TargetPrice, cprSignal.EntryPrice) {
 		setNeutralSignal(&cprSignal)
-		cprSignal.Message = "Not enough points"
+		cprSignal.Message = "Not enough points to Target"
 		return cprSignal
 	}
-	// set cprSignal.Message to Prices it crossed comma seperated appended by the level Description (123,1231,12312) (PREVIOUS DAY HIGH,RESISTANCE, CENTRAL PIVOT)
+
+	if !minStopLossAvailable(cprSignal.StopLossPrice, cprSignal.EntryPrice) {
+		setNeutralSignal(&cprSignal)
+		cprSignal.Message = "Not enough points to Stop Loss"
+		return cprSignal
+	}
 	return cprSignal
 }
 
@@ -128,11 +133,19 @@ func isRiskRewardRatioOneToOne(cprSignal Signal) bool {
 	return math.Abs(cprSignal.StopLossPrice-cprSignal.EntryPrice) <= math.Abs(cprSignal.TargetPrice-cprSignal.EntryPrice)
 }
 
-func minTargetAbailable(targetPrice, entryPrice float64) bool {
+func minTargetAvailable(targetPrice, entryPrice float64) bool {
 	if targetPrice < entryPrice {
 		return targetPrice <= entryPrice*(1-MIN_POINTS_MULTIPLIER)
 	} else {
 		return targetPrice >= entryPrice*(1+MIN_POINTS_MULTIPLIER)
+	}
+}
+
+func minStopLossAvailable(stoplossPrice, entryPrice float64) bool {
+	if stoplossPrice < entryPrice {
+		return stoplossPrice <= entryPrice*(1-MIN_POINTS_MULTIPLIER_SL)
+	} else {
+		return stoplossPrice >= entryPrice*(1+MIN_POINTS_MULTIPLIER_SL)
 	}
 }
 
