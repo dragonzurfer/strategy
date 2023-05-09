@@ -173,7 +173,7 @@ func TestGetCPRSignal(t *testing.T) {
 			prevDayCandles := TestCandles(testCase.PreviousDayCandle)
 			currDayCandles := TestCandles(testCase.CurrentDay5MinCandles)
 
-			actualSignal := cpr.GetCPRSignal(testCase.MinPointsPercent, prevDayCandles, currDayCandles)
+			actualSignal := cpr.GetCPRSignal(0.05, testCase.MinPointsPercent, prevDayCandles, currDayCandles)
 			expectedSignal := testCase.ExpectedSignal.ToSignal()
 
 			// Sort the TargetLevels in both expected and actual signals
