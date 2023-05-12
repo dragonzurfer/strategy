@@ -21,10 +21,19 @@ func processCrossedLevels(LevelsWithinRange []revclose.LevelInterface) []CPRLeve
 }
 
 func convertToCPRSignal(revSignal *revclose.Signal, levels *[]CPRLevel) Signal {
+	if revSignal.Reversal == math.SmallestNonzeroFloat64 && revSignal.ReversalType == revclose.Bullish {
+		return Signal{
+			Signal:        Neutral,
+			StopLossPrice: math.SmallestNonzeroFloat64,
+			Message:       "Reversal invalid, both bull n bear fractal",
+		}
+	}
 	if !reversalTypeMatch(revSignal) {
 		return Signal{
-			Signal:  Neutral,
-			Message: "Reversal type not matching trade",
+			Signal:        Neutral,
+			EntryPrice:    revSignal.Close,
+			StopLossPrice: revSignal.Reversal,
+			Message:       "Reversal type not matching trade",
 		}
 	}
 	cprSignal := initializeCPRSignal(revSignal)

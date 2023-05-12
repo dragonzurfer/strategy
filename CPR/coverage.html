@@ -63,7 +63,7 @@
 				
 				<option value="file3">github.com/dragonzurfer/strategy/CPR/levels.go (100.0%)</option>
 				
-				<option value="file4">github.com/dragonzurfer/strategy/CPR/signal.go (94.6%)</option>
+				<option value="file4">github.com/dragonzurfer/strategy/CPR/signal.go (97.4%)</option>
 				
 				</select>
 			</div>
@@ -84,6 +84,7 @@ import (
 )
 
 var MIN_POINTS_MULTIPLIER float64
+var MIN_POINTS_MULTIPLIER_SL float64
 
 type SignalValue string
 
@@ -108,8 +109,9 @@ type Signal struct {
         Message       string
 }
 
-func GetCPRSignal(minPointsPercent float64, previousDayCandle, currendDay5MinCandles CPRCandles) Signal <span class="cov8" title="1">{
+func GetCPRSignal(minPointsStopLossPercent float64, minPointsPercent float64, previousDayCandle, currendDay5MinCandles CPRCandles) Signal <span class="cov8" title="1">{
         MIN_POINTS_MULTIPLIER = minPointsPercent / 100
+        MIN_POINTS_MULTIPLIER_SL = minPointsStopLossPercent / 100
         var signal Signal
         currenDayCandlesLength := currendDay5MinCandles.GetCandlesLength()
         closingPrice := currendDay5MinCandles.GetCandle(currenDayCandlesLength - 1).GetClose()
@@ -335,7 +337,23 @@ func processCrossedLevels(LevelsWithinRange []revclose.LevelInterface) []CPRLeve
 }
 
 func convertToCPRSignal(revSignal *revclose.Signal, levels *[]CPRLevel) Signal <span class="cov8" title="1">{
-        cprSignal := initializeCPRSignal(revSignal)
+        if revSignal.Reversal == math.SmallestNonzeroFloat64 &amp;&amp; revSignal.ReversalType == revclose.Bullish </span><span class="cov8" title="1">{
+                return Signal{
+                        Signal:        Neutral,
+                        StopLossPrice: math.SmallestNonzeroFloat64,
+                        Message:       "Reversal invalid, both bull n bear fractal",
+                }
+        }</span>
+        <span class="cov8" title="1">if !reversalTypeMatch(revSignal) </span><span class="cov8" title="1">{
+                return Signal{
+                        Signal:        Neutral,
+                        EntryPrice:    revSignal.Close,
+                        StopLossPrice: revSignal.Reversal,
+                        Message:       "Reversal type not matching trade",
+                }
+        }</span>
+        <span class="cov8" title="1">cprSignal := initializeCPRSignal(revSignal)
+
         sortLevelsByPrice(levels)
 
         startIndex := findStartIndex(revSignal.Value, revSignal.Close, levels)
@@ -345,21 +363,35 @@ func convertToCPRSignal(revSignal *revclose.Signal, levels *[]CPRLevel) Signal <
                 setMessage(&amp;cprSignal, levels)
         }</span>
 
+        <span class="cov8" title="1">if len(revSignal.LevelsWithinRange) == 0 </span><span class="cov8" title="1">{
+                setNeutralSignal(&amp;cprSignal)
+                cprSignal.Message = "No level has crossed"
+                return cprSignal
+        }</span>
+
         <span class="cov8" title="1">if len(cprSignal.TargetLevels) &lt; 1 </span><span class="cov8" title="1">{
                 setNeutralSignal(&amp;cprSignal)
                 cprSignal.Message = "No more levels"
+                return cprSignal
         }</span>
 
         <span class="cov8" title="1">if !isRiskRewardRatioOneToOne(cprSignal) </span><span class="cov8" title="1">{
                 setNeutralSignal(&amp;cprSignal)
                 cprSignal.Message = "No good RR"
+                return cprSignal
         }</span>
 
-        <span class="cov8" title="1">if !minTargetAbailable(cprSignal.TargetPrice, cprSignal.EntryPrice) </span><span class="cov8" title="1">{
+        <span class="cov8" title="1">if !minTargetAvailable(cprSignal.TargetPrice, cprSignal.EntryPrice) </span><span class="cov8" title="1">{
                 setNeutralSignal(&amp;cprSignal)
-                cprSignal.Message = "Not enough points"
+                cprSignal.Message = "Not enough points to Target"
+                return cprSignal
         }</span>
-        // set cprSignal.Message to Prices it crossed comma seperated appended by the level Description (123,1231,12312) (PREVIOUS DAY HIGH,RESISTANCE, CENTRAL PIVOT)
+
+        <span class="cov8" title="1">if !minStopLossAvailable(cprSignal.StopLossPrice, cprSignal.EntryPrice) </span><span class="cov8" title="1">{
+                setNeutralSignal(&amp;cprSignal)
+                cprSignal.Message = "Not enough points to Stop Loss"
+                return cprSignal
+        }</span>
         <span class="cov8" title="1">return cprSignal</span>
 }
 
@@ -410,7 +442,7 @@ func findStartIndex(value revclose.SignalValue, closePrice float64, levels *[]CP
                 }
                 <span class="cov0" title="0">return -1</span>
         }
-        <span class="cov0" title="0">return math.MinInt32</span>
+        <span class="cov8" title="1">return math.MinInt32</span>
 }
 
 func setTargetLevelsAndPrice(value revclose.SignalValue, startIndex int, levels []CPRLevel, cprSignal *Signal) <span class="cov8" title="1">{
@@ -432,11 +464,19 @@ func isRiskRewardRatioOneToOne(cprSignal Signal) bool <span class="cov8" title="
         return math.Abs(cprSignal.StopLossPrice-cprSignal.EntryPrice) &lt;= math.Abs(cprSignal.TargetPrice-cprSignal.EntryPrice)
 }</span>
 
-func minTargetAbailable(targetPrice, entryPrice float64) bool <span class="cov8" title="1">{
+func minTargetAvailable(targetPrice, entryPrice float64) bool <span class="cov8" title="1">{
         if targetPrice &lt; entryPrice </span><span class="cov8" title="1">{
                 return targetPrice &lt;= entryPrice*(1-MIN_POINTS_MULTIPLIER)
         }</span> else<span class="cov8" title="1"> {
                 return targetPrice &gt;= entryPrice*(1+MIN_POINTS_MULTIPLIER)
+        }</span>
+}
+
+func minStopLossAvailable(stoplossPrice, entryPrice float64) bool <span class="cov8" title="1">{
+        if stoplossPrice &lt; entryPrice </span><span class="cov8" title="1">{
+                return stoplossPrice &lt;= entryPrice*(1-MIN_POINTS_MULTIPLIER_SL)
+        }</span> else<span class="cov8" title="1"> {
+                return stoplossPrice &gt;= entryPrice*(1+MIN_POINTS_MULTIPLIER_SL)
         }</span>
 }
 
@@ -445,6 +485,15 @@ func setNeutralSignal(cprSignal *Signal) <span class="cov8" title="1">{
         cprSignal.TargetPrice = 0
         cprSignal.TargetLevels = []CPRLevel{}
 }</span>
+
+// reversal is from lower price to close then type should be bearish. There are cases where this can not match (low probability)
+func reversalTypeMatch(signal *revclose.Signal) bool <span class="cov8" title="1">{
+        if signal.Reversal &lt; signal.Close </span><span class="cov8" title="1">{
+                return signal.ReversalType == revclose.Bearish
+        }</span> else<span class="cov8" title="1"> {
+                return signal.ReversalType == revclose.Bullish
+        }</span>
+}
 </pre>
 		
 		</div>
