@@ -153,6 +153,7 @@ func TestGetCPRSignal(t *testing.T) {
 		"testcase10.json",
 		"testcase11.json",
 		"testcase12.json",
+		"testcase13.json",
 	}
 
 	for _, tc := range testCases {

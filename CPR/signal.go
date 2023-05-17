@@ -76,6 +76,12 @@ func convertToCPRSignal(revSignal *revclose.Signal, levels *[]CPRLevel) Signal {
 		cprSignal.Message = "Not enough points to Stop Loss"
 		return cprSignal
 	}
+
+	if maxStopLossCrossed(cprSignal.StopLossPrice, cprSignal.EntryPrice) {
+		setNeutralSignal(&cprSignal)
+		cprSignal.Message = "Stop Loss too large"
+		return cprSignal
+	}
 	return cprSignal
 }
 
@@ -161,6 +167,14 @@ func minStopLossAvailable(stoplossPrice, entryPrice float64) bool {
 		return stoplossPrice <= entryPrice*(1-MIN_POINTS_MULTIPLIER_SL)
 	} else {
 		return stoplossPrice >= entryPrice*(1+MIN_POINTS_MULTIPLIER_SL)
+	}
+}
+
+func maxStopLossCrossed(stoplossPrice, entryPrice float64) bool {
+	if stoplossPrice < entryPrice {
+		return stoplossPrice < entryPrice*(1-MAX_POINT_MULTIPLIER_SL)
+	} else {
+		return stoplossPrice > entryPrice*(1+MAX_POINT_MULTIPLIER_SL)
 	}
 }
 
