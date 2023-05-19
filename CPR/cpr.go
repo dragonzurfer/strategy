@@ -34,7 +34,7 @@ type Signal struct {
 func GetCPRSignal(minPointsStopLossPercent float64, minPointsPercent float64, previousDayCandle, currendDay5MinCandles CPRCandles) Signal {
 	MIN_POINTS_MULTIPLIER = minPointsPercent / 100
 	MIN_POINTS_MULTIPLIER_SL = minPointsStopLossPercent / 100
-	MAX_POINT_MULTIPLIER_SL = MIN_POINTS_MULTIPLIER * 2
+	MAX_POINT_MULTIPLIER_SL = MIN_POINTS_MULTIPLIER
 	var signal Signal
 	currenDayCandlesLength := currendDay5MinCandles.GetCandlesLength()
 	closingPrice := currendDay5MinCandles.GetCandle(currenDayCandlesLength - 1).GetClose()
